@@ -8,7 +8,6 @@ export interface BestPairDisplay extends BestPairsRow {
   playerAName: string;
   playerBName: string;
   winPct: number;
-  avgDiffPerSet: number;
 }
 
 export function useBestPairs() {
@@ -31,8 +30,7 @@ export function useBestPairs() {
     ...row,
     playerAName: nameById.get(row.player_a_id) ?? "?",
     playerBName: nameById.get(row.player_b_id) ?? "?",
-    winPct: row.sets_played > 0 ? row.sets_won / row.sets_played : 0,
-    avgDiffPerSet: row.sets_played > 0 ? row.total_game_diff / row.sets_played : 0,
+    winPct: row.matches_played > 0 ? row.matches_won / row.matches_played : 0,
   }));
 
   return { ...query, rows };

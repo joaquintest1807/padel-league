@@ -2,11 +2,11 @@ import type { BestPairDisplay } from "../hooks/useBestPairs";
 
 export default function BestPairsTable({ rows }: { rows: BestPairDisplay[] }) {
   const sorted = [...rows]
-    .filter((r) => r.sets_played > 0)
-    .sort((a, b) => b.winPct - a.winPct || b.total_game_diff - a.total_game_diff);
+    .filter((r) => r.matches_played > 0)
+    .sort((a, b) => b.winPct - a.winPct || b.total_points - a.total_points);
 
   if (sorted.length === 0) {
-    return <p className="empty-state">Todavía no hay parejas con sets jugados.</p>;
+    return <p className="empty-state">Todavía no hay parejas con partidos jugados.</p>;
   }
 
   return (
@@ -14,10 +14,10 @@ export default function BestPairsTable({ rows }: { rows: BestPairDisplay[] }) {
       <thead>
         <tr>
           <th>Pareja</th>
-          <th>Sets</th>
+          <th>Partidos</th>
           <th>Ganados</th>
           <th>% Victoria</th>
-          <th>Dif. Games</th>
+          <th>Puntos</th>
         </tr>
       </thead>
       <tbody>
@@ -26,10 +26,10 @@ export default function BestPairsTable({ rows }: { rows: BestPairDisplay[] }) {
             <td>
               {row.playerAName} / {row.playerBName}
             </td>
-            <td>{row.sets_played}</td>
-            <td>{row.sets_won}</td>
+            <td>{row.matches_played}</td>
+            <td>{row.matches_won}</td>
             <td>{Math.round(row.winPct * 100)}%</td>
-            <td>{row.total_game_diff >= 0 ? `+${row.total_game_diff}` : row.total_game_diff}</td>
+            <td>{row.total_points}</td>
           </tr>
         ))}
       </tbody>

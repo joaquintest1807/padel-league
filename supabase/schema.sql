@@ -14,6 +14,10 @@
 drop view if exists best_pairs;
 drop view if exists player_date_points;
 drop view if exists season_ranking;
+drop view if exists pair_match_points;
+drop view if exists player_match_points;
+drop view if exists match_points;
+drop view if exists match_results;
 drop view if exists player_set_points;
 drop function if exists generate_fixture(bigint);
 drop function if exists generate_fixture(bigint, smallint);
@@ -76,71 +80,111 @@ create table matches (
 
 -- Cada fila es 1 set de un partido. generate_fixture crea 3 filas (1,2,3) por
 -- partido con los games en null; el tercer set puede quedar sin jugar.
+-- El puntaje NO vive aca: depende de cuantos sets gano cada pareja en TODO
+-- el partido (regla 3/1/0, ver vistas mas abajo), algo que una columna
+-- generada de una sola fila no puede expresar.
 create table sets (
   id             bigint generated always as identity primary key,
   match_id       bigint not null references matches(id) on delete cascade,
   set_number     smallint not null check (set_number between 1 and 3),
   games_pair_1   smallint,
   games_pair_2   smallint,
-  points_pair_1  smallint generated always as (
-    case when games_pair_1 is null or games_pair_2 is null then null
-         else (games_pair_1 - games_pair_2)
-              + case when games_pair_1 > games_pair_2 then 1 else 0 end
-    end
-  ) stored,
-  points_pair_2  smallint generated always as (
-    case when games_pair_1 is null or games_pair_2 is null then null
-         else (games_pair_2 - games_pair_1)
-              + case when games_pair_2 > games_pair_1 then 1 else 0 end
-    end
-  ) stored,
   unique (match_id, set_number)
 );
 
 -- ----------------------------------------------------------------------------
 -- VISTAS (se recalculan solas a partir de los datos crudos)
+--
+-- Regla de puntaje (por PARTIDO, al mejor de 3 sets, no por set):
+--   - Gana el partido (2 sets ganados)              -> 3 puntos
+--   - Pierde el partido pero gano al menos 1 set     -> 1 punto
+--   - Pierde el partido sin ganar ningun set (0-2)    -> 0 puntos
+--   - Partido todavia sin decidir (nadie llego a 2)   -> 0 puntos provisorios
+-- Un partido solo cuenta como "jugado" si al menos 1 set tiene ambos games
+-- cargados; un partido del fixture sin tocar no aparece en ninguna estadistica.
 -- ----------------------------------------------------------------------------
 
--- Cada set jugado, desplegado en 2 filas (una por jugador de cada pareja)
-create view player_set_points as
-  select s.id as set_id, m.match_date_id, pr.player_1_id as player_id, s.points_pair_1 as points
-    from sets s
-    join matches m on m.id = s.match_id
-    join pairs pr on pr.id = m.pair_1_id
-   where s.points_pair_1 is not null
-  union all
-  select s.id, m.match_date_id, pr.player_2_id, s.points_pair_1
-    from sets s
-    join matches m on m.id = s.match_id
-    join pairs pr on pr.id = m.pair_1_id
-   where s.points_pair_1 is not null
-  union all
-  select s.id, m.match_date_id, pr.player_1_id, s.points_pair_2
-    from sets s
-    join matches m on m.id = s.match_id
-    join pairs pr on pr.id = m.pair_2_id
-   where s.points_pair_2 is not null
-  union all
-  select s.id, m.match_date_id, pr.player_2_id, s.points_pair_2
-    from sets s
-    join matches m on m.id = s.match_id
-    join pairs pr on pr.id = m.pair_2_id
-   where s.points_pair_2 is not null;
+-- Por partido: cuantos sets se jugaron y cuantos gano cada pareja
+create view match_results as
+  select m.id as match_id, m.match_date_id, m.pair_1_id, m.pair_2_id,
+         count(*) filter (
+           where s.games_pair_1 is not null and s.games_pair_2 is not null
+         ) as sets_played,
+         count(*) filter (
+           where s.games_pair_1 is not null and s.games_pair_2 is not null
+             and s.games_pair_1 > s.games_pair_2
+         ) as sets_won_pair_1,
+         count(*) filter (
+           where s.games_pair_1 is not null and s.games_pair_2 is not null
+             and s.games_pair_2 > s.games_pair_1
+         ) as sets_won_pair_2
+    from matches m
+    join sets s on s.match_id = m.id
+   group by m.id, m.match_date_id, m.pair_1_id, m.pair_2_id;
 
--- Tabla General: ranking acumulado de temporada
+-- Aplica la regla 3/1/0 sobre match_results
+create view match_points as
+  select mr.*,
+         (mr.sets_played >= 1) as is_started,
+         (mr.sets_won_pair_1 >= 2 or mr.sets_won_pair_2 >= 2) as is_decided,
+         case
+           when mr.sets_won_pair_1 >= 2 then 3
+           when mr.sets_won_pair_2 >= 2 then
+             case when mr.sets_won_pair_1 >= 1 then 1 else 0 end
+           else 0
+         end as points_pair_1,
+         case
+           when mr.sets_won_pair_2 >= 2 then 3
+           when mr.sets_won_pair_1 >= 2 then
+             case when mr.sets_won_pair_2 >= 1 then 1 else 0 end
+           else 0
+         end as points_pair_2
+    from match_results mr;
+
+-- Cada partido JUGADO (is_started), desplegado en 2 filas (una por jugador de cada pareja)
+create view player_match_points as
+  select mp.match_id, mp.match_date_id, pr.player_1_id as player_id, mp.points_pair_1 as points
+    from match_points mp join pairs pr on pr.id = mp.pair_1_id
+   where mp.is_started
+  union all
+  select mp.match_id, mp.match_date_id, pr.player_2_id, mp.points_pair_1
+    from match_points mp join pairs pr on pr.id = mp.pair_1_id
+   where mp.is_started
+  union all
+  select mp.match_id, mp.match_date_id, pr.player_1_id, mp.points_pair_2
+    from match_points mp join pairs pr on pr.id = mp.pair_2_id
+   where mp.is_started
+  union all
+  select mp.match_id, mp.match_date_id, pr.player_2_id, mp.points_pair_2
+    from match_points mp join pairs pr on pr.id = mp.pair_2_id
+   where mp.is_started;
+
+-- Igual que player_match_points pero por pareja (insumo de Mejores Parejas)
+create view pair_match_points as
+  select mp.match_id, mp.match_date_id, mp.pair_1_id as pair_id,
+         mp.points_pair_1 as points, (mp.points_pair_1 = 3) as won
+    from match_points mp
+   where mp.is_started
+  union all
+  select mp.match_id, mp.match_date_id, mp.pair_2_id as pair_id,
+         mp.points_pair_2 as points, (mp.points_pair_2 = 3) as won
+    from match_points mp
+   where mp.is_started;
+
+-- Tabla General: ranking acumulado de temporada (unidad = partido, no set)
 create view season_ranking as
   select p.id as player_id, p.name,
-         coalesce(sum(psp.points), 0) as total_points,
-         count(psp.points) as sets_played,
-         count(distinct psp.match_date_id) as dates_played
+         coalesce(sum(pmp.points), 0) as total_points,
+         count(pmp.points) as matches_played,
+         count(distinct pmp.match_date_id) as dates_played
     from players p
-    left join player_set_points psp on psp.player_id = p.id
+    left join player_match_points pmp on pmp.player_id = p.id
    group by p.id, p.name;
 
 -- Puntos por jugador y por fecha (insumo del calculo de rachas, que corre en el cliente)
 create view player_date_points as
   select player_id, match_date_id, sum(points) as date_points
-    from player_set_points
+    from player_match_points
    group by player_id, match_date_id;
 
 -- Mejores Parejas: estadisticas historicas por combinacion de 2 jugadores
@@ -148,15 +192,11 @@ create view player_date_points as
 create view best_pairs as
   select least(pr.player_1_id, pr.player_2_id) as player_a_id,
          greatest(pr.player_1_id, pr.player_2_id) as player_b_id,
-         count(*) as sets_played,
-         sum(case when m.pair_1_id = pr.id then (s.games_pair_1 > s.games_pair_2)::int
-                  else (s.games_pair_2 > s.games_pair_1)::int end) as sets_won,
-         sum(case when m.pair_1_id = pr.id then (s.games_pair_1 - s.games_pair_2)
-                  else (s.games_pair_2 - s.games_pair_1) end) as total_game_diff
-    from pairs pr
-    join matches m on m.pair_1_id = pr.id or m.pair_2_id = pr.id
-    join sets s on s.match_id = m.id
-   where s.games_pair_1 is not null and s.games_pair_2 is not null
+         count(*) as matches_played,
+         count(*) filter (where pmp.won) as matches_won,
+         coalesce(sum(pmp.points), 0) as total_points
+    from pair_match_points pmp
+    join pairs pr on pr.id = pmp.pair_id
    group by least(pr.player_1_id, pr.player_2_id), greatest(pr.player_1_id, pr.player_2_id);
 
 -- ----------------------------------------------------------------------------

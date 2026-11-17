@@ -11,7 +11,7 @@ export default function RankingTable({ rows }: { rows: SeasonRankingRow[] }) {
           <th>Jugador</th>
           <th>Puntos</th>
           <th>Fechas</th>
-          <th>Sets</th>
+          <th>Partidos</th>
         </tr>
       </thead>
       <tbody>
@@ -21,7 +21,7 @@ export default function RankingTable({ rows }: { rows: SeasonRankingRow[] }) {
             <td>{row.name}</td>
             <td className="points-cell">{row.total_points}</td>
             <td>{row.dates_played}</td>
-            <td>{row.sets_played}</td>
+            <td>{row.matches_played}</td>
           </tr>
         ))}
       </tbody>

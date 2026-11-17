@@ -61,8 +61,9 @@ Abrir la URL que muestra la terminal (normalmente `http://localhost:5173`).
   - **8 jugadores**: 3 rondas, 2 canchas, cada pareja juega contra las otras 3.
   - **6 jugadores**: round robin de 3 parejas en 1 cancha, cada pareja contra las otras 2.
   - **4 jugadores**: 1 solo cruce.
-- Cada cruce entre 2 parejas se juega **al mejor de 3 sets**. Se cargan los games de cada set que se jugó (el tercero puede quedar vacío si el cruce se definió 2-0). Puntaje individual de **cada set**: diferencia de games + 1 punto extra si ganaste ese set (se acredita a ambos integrantes de la pareja); el puntaje del cruce es la suma de sus sets.
-- "Tabla General" acumula esos puntos fecha a fecha. "Mejores Parejas" junta el historial de cada combinación de 2 jugadores que jugó junta. "Rachas" muestra la racha actual y la mejor racha de fechas consecutivas con saldo positivo.
+- Cada cruce entre 2 parejas se juega **al mejor de 3 sets**. Se cargan los games de cada set que se jugó (el tercero puede quedar vacío si el cruce se definió 2-0).
+- Puntaje por **partido** (no por set): la pareja que gana el partido suma **3 puntos** cada integrante; si pierde pero ganó al menos 1 set, suma **1 punto**; si pierde sin ganar ningún set, suma **0 puntos** (nunca negativo). Mientras el partido no está decidido (ej. 1 set a 1, falta el tercero), se muestra 0-0 de forma provisoria.
+- "Tabla General" acumula esos puntos fecha a fecha, y cuenta cuántos **partidos** jugó cada uno. "Mejores Parejas" junta el historial de partidos jugados/ganados y puntos totales de cada combinación de 2 jugadores. "Rachas" muestra la racha actual y la mejor racha de fechas consecutivas con saldo positivo.
 
 ## Estructura del proyecto
 

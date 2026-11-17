@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Match, MatchSet, Pair } from "../lib/types";
 import { PAIR_LETTERS } from "../lib/types";
-import { computeSetPoints } from "../utils/scoring";
+import { computeMatchPoints } from "../utils/scoring";
 
 interface Props {
   match: Match;
@@ -48,33 +48,29 @@ export default function MatchCard({ match, sets, pairsById, nameById, onSave, is
 
   // Un set solo cuenta como "listo para guardar" si tiene ambos valores,
   // son numeros validos y no estan empatados (un set de padel no empata).
-  const readySets = sets
-    .map((s) => {
-      const input = inputs[s.id] ?? { g1: "", g2: "" };
-      const g1 = input.g1 === "" ? null : Number(input.g1);
-      const g2 = input.g2 === "" ? null : Number(input.g2);
-      const valid =
-        g1 !== null &&
-        g2 !== null &&
-        Number.isInteger(g1) &&
-        Number.isInteger(g2) &&
-        g1 >= 0 &&
-        g2 >= 0 &&
-        g1 !== g2;
-      return { set: s, g1, g2, valid };
-    });
+  const readySets = sets.map((s) => {
+    const input = inputs[s.id] ?? { g1: "", g2: "" };
+    const g1 = input.g1 === "" ? null : Number(input.g1);
+    const g2 = input.g2 === "" ? null : Number(input.g2);
+    const valid =
+      g1 !== null &&
+      g2 !== null &&
+      Number.isInteger(g1) &&
+      Number.isInteger(g2) &&
+      g1 >= 0 &&
+      g2 >= 0 &&
+      g1 !== g2;
+    return { set: s, g1, g2, valid };
+  });
 
   const canSave = readySets.some((r) => r.valid);
 
-  const totalPoints1 = readySets.reduce(
-    (acc, r) => acc + (r.valid ? computeSetPoints(r.g1, r.g2)! : 0),
-    0
+  const matchPoints = computeMatchPoints(
+    readySets.map((r) => ({
+      gamesPair1: r.valid ? r.g1 : null,
+      gamesPair2: r.valid ? r.g2 : null,
+    }))
   );
-  const totalPoints2 = readySets.reduce(
-    (acc, r) => acc + (r.valid ? computeSetPoints(r.g2, r.g1)! : 0),
-    0
-  );
-  const anySetHasScore = readySets.some((r) => r.valid);
 
   function handleSave() {
     const updates = readySets
@@ -94,10 +90,6 @@ export default function MatchCard({ match, sets, pairsById, nameById, onSave, is
       <div className="match-sets">
         {sets.map((s) => {
           const input = inputs[s.id] ?? { g1: "", g2: "" };
-          const g1 = input.g1 === "" ? null : Number(input.g1);
-          const g2 = input.g2 === "" ? null : Number(input.g2);
-          const preview1 = computeSetPoints(g1, g2);
-          const preview2 = computeSetPoints(g2, g1);
           return (
             <div key={s.id} className="set-row">
               <span className="set-label">Set {s.set_number}</span>
@@ -118,11 +110,6 @@ export default function MatchCard({ match, sets, pairsById, nameById, onSave, is
                 value={input.g2}
                 onChange={(e) => updateInput(s.id, "g2", e.target.value)}
               />
-              {preview1 !== null && (
-                <span className="points-preview">
-                  {preview1 >= 0 ? `+${preview1}` : preview1} / {preview2! >= 0 ? `+${preview2}` : preview2}
-                </span>
-              )}
             </div>
           );
         })}
@@ -132,20 +119,16 @@ export default function MatchCard({ match, sets, pairsById, nameById, onSave, is
         <div className="match-pair">
           <span className="pair-letter">{PAIR_LETTERS[pair1?.pair_order ?? 0]}</span>
           <span className="pair-names">{pairLabel(pair1, nameById)}</span>
-          {anySetHasScore && (
-            <span className="points-preview total">
-              {totalPoints1 >= 0 ? `+${totalPoints1}` : totalPoints1}
-            </span>
+          {matchPoints.isStarted && (
+            <span className="points-preview total">{matchPoints.pointsPair1}</span>
           )}
         </div>
         <div className="match-vs">vs</div>
         <div className="match-pair">
           <span className="pair-letter">{PAIR_LETTERS[pair2?.pair_order ?? 0]}</span>
           <span className="pair-names">{pairLabel(pair2, nameById)}</span>
-          {anySetHasScore && (
-            <span className="points-preview total">
-              {totalPoints2 >= 0 ? `+${totalPoints2}` : totalPoints2}
-            </span>
+          {matchPoints.isStarted && (
+            <span className="points-preview total">{matchPoints.pointsPair2}</span>
           )}
         </div>
       </div>
