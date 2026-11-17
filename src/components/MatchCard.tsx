@@ -10,6 +10,7 @@ interface Props {
   nameById: Map<number, string>;
   onSave: (updates: { setId: number; gamesPair1: number; gamesPair2: number }[]) => void;
   isSaving: boolean;
+  canEdit: boolean;
 }
 
 function pairLabel(pair: Pair | undefined, nameById: Map<number, string>): string {
@@ -24,7 +25,15 @@ interface SetInputState {
   g2: string;
 }
 
-export default function MatchCard({ match, sets, pairsById, nameById, onSave, isSaving }: Props) {
+export default function MatchCard({
+  match,
+  sets,
+  pairsById,
+  nameById,
+  onSave,
+  isSaving,
+  canEdit,
+}: Props) {
   const pair1 = pairsById.get(match.pair_1_id);
   const pair2 = pairsById.get(match.pair_2_id);
 
@@ -99,6 +108,7 @@ export default function MatchCard({ match, sets, pairsById, nameById, onSave, is
                 min={0}
                 className="games-input"
                 value={input.g1}
+                disabled={!canEdit}
                 onChange={(e) => updateInput(s.id, "g1", e.target.value)}
               />
               <span className="set-dash">-</span>
@@ -108,6 +118,7 @@ export default function MatchCard({ match, sets, pairsById, nameById, onSave, is
                 min={0}
                 className="games-input"
                 value={input.g2}
+                disabled={!canEdit}
                 onChange={(e) => updateInput(s.id, "g2", e.target.value)}
               />
             </div>
@@ -133,14 +144,16 @@ export default function MatchCard({ match, sets, pairsById, nameById, onSave, is
         </div>
       </div>
 
-      <button
-        type="button"
-        className="btn-secondary"
-        disabled={!canSave || isSaving}
-        onClick={handleSave}
-      >
-        {isSaving ? "Guardando..." : hasAnySavedSet ? "Actualizar resultado" : "Guardar resultado"}
-      </button>
+      {canEdit && (
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={!canSave || isSaving}
+          onClick={handleSave}
+        >
+          {isSaving ? "Guardando..." : hasAnySavedSet ? "Actualizar resultado" : "Guardar resultado"}
+        </button>
+      )}
     </div>
   );
 }

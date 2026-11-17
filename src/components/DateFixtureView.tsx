@@ -3,9 +3,11 @@ import type { Availability, MatchDate } from "../lib/types";
 import AvailabilityList from "./AvailabilityList";
 import ArmarFixtureButton from "./ArmarFixtureButton";
 import FixtureBoard from "./FixtureBoard";
+import ResultsLockBanner from "./ResultsLockBanner";
 import { useAvailability } from "../hooks/useAvailability";
 import { useFixture } from "../hooks/useFixture";
 import { usePlayers } from "../hooks/usePlayers";
+import { useResultsLock } from "../hooks/useResultsLock";
 
 interface Props {
   matchDate: MatchDate;
@@ -21,6 +23,7 @@ export default function DateFixtureView({
   const { data: availability, setAvailability } = useAvailability(matchDate.id);
   const { pairs, matches, sets, generateFixture, saveSets } = useFixture(matchDate.id);
   const [savingMatchId, setSavingMatchId] = useState<number | null>(null);
+  const { isUnlocked, tryUnlock } = useResultsLock();
 
   const confirmedCount = (availability ?? []).filter((a) => a.is_available).length;
   const fixtureExists = pairs.length > 0;
@@ -72,6 +75,7 @@ export default function DateFixtureView({
               <span className="games-per-set-tag"> · sets a {matchDate.games_per_set} games</span>
             )}
           </h2>
+          {!isUnlocked && <ResultsLockBanner onUnlock={tryUnlock} />}
           <FixtureBoard
             pairs={pairs}
             matches={matches}
@@ -79,6 +83,7 @@ export default function DateFixtureView({
             players={players ?? []}
             onSaveSets={handleSaveSets}
             savingMatchId={savingMatchId}
+            canEdit={isUnlocked}
           />
         </section>
       )}

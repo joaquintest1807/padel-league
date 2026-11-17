@@ -264,6 +264,41 @@ html, body {
   font-size: 0.9rem;
 }
 
+.results-lock-banner {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.results-lock-text {
+  font-size: 0.85rem;
+  color: var(--color-text-dim);
+  margin: 0 0 0.6rem;
+}
+
+.results-lock-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.results-lock-input {
+  flex: 1;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  color: var(--color-text);
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+.results-lock-btn {
+  width: auto;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
 .empty-state {
   color: var(--color-text-dim);
 }

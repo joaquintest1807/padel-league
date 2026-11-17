@@ -33,7 +33,10 @@ cp .env.example .env.local
 ```
 VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
 VITE_SUPABASE_ANON_KEY=tu-anon-key-publica
+VITE_RESULTS_PIN=1234
 ```
+
+`VITE_RESULTS_PIN` es opcional: si se configura, solo quien ingrese ese PIN puede cargar/editar resultados (el resto puede seguir marcando disponibilidad y armando el fixture libremente). No es una medida de seguridad real — alcanza para que nadie edite por error o de joda entre amigos, no para proteger datos sensibles. Si se deja sin configurar, no hay candado.
 
 ### 3. Correr localmente
 
@@ -49,9 +52,10 @@ Abrir la URL que muestra la terminal (normalmente `http://localhost:5173`).
 1. Crear una cuenta gratis en [vercel.com](https://vercel.com) (podés entrar con tu cuenta de GitHub).
 2. **Add New → Project** → importar el repositorio de GitHub de esta app.
 3. Vercel detecta Vite automáticamente (build command `npm run build`, output `dist`). No cambiar nada ahí.
-4. En **Environment Variables**, agregar las mismas 2 variables que en `.env.local`:
+4. En **Environment Variables**, agregar las mismas variables que en `.env.local`:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_RESULTS_PIN` (opcional, ver arriba)
 5. Deploy. Cada vez que se haga `git push` a la rama principal, Vercel vuelve a desplegar solo.
 
 ## Cómo se juega (reglas que la app implementa)

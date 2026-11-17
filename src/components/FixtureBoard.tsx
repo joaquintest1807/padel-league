@@ -11,6 +11,7 @@ interface Props {
     updates: { setId: number; gamesPair1: number; gamesPair2: number }[]
   ) => void;
   savingMatchId: number | null;
+  canEdit: boolean;
 }
 
 export default function FixtureBoard({
@@ -20,6 +21,7 @@ export default function FixtureBoard({
   players,
   onSaveSets,
   savingMatchId,
+  canEdit,
 }: Props) {
   const pairsById = new Map(pairs.map((p) => [p.id, p]));
   const nameById = new Map(players.map((p) => [p.id, p.name]));
@@ -53,6 +55,7 @@ export default function FixtureBoard({
                   nameById={nameById}
                   isSaving={savingMatchId === match.id}
                   onSave={(updates) => onSaveSets(match.id, updates)}
+                  canEdit={canEdit}
                 />
               ))}
           </div>
