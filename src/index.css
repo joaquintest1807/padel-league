@@ -136,6 +136,11 @@ html, body {
   cursor: pointer;
 }
 
+.toggle-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .toggle-btn.voy.selected {
   background: var(--color-primary);
   border-color: var(--color-primary);

@@ -6,6 +6,7 @@ const links = [
   { to: "/tabla", label: "Tabla", icon: "🏆" },
   { to: "/mejores-parejas", label: "Parejas", icon: "🤝" },
   { to: "/rachas", label: "Rachas", icon: "🔥" },
+  { to: "/historial", label: "Historial", icon: "📖" },
 ];
 
 export default function NavBar() {
