@@ -6,6 +6,7 @@ export interface Player {
 export interface MatchDate {
   id: number;
   date: string; // ISO yyyy-mm-dd
+  games_per_set: 4 | 6 | null;
 }
 
 export interface Availability {
@@ -31,6 +32,12 @@ export interface Match {
   court: number;
   pair_1_id: number;
   pair_2_id: number;
+}
+
+export interface MatchSet {
+  id: number;
+  match_id: number;
+  set_number: 1 | 2 | 3;
   games_pair_1: number | null;
   games_pair_2: number | null;
   points_pair_1: number | null;

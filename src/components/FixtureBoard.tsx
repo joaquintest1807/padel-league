@@ -1,23 +1,35 @@
-import type { Match, Pair, Player } from "../lib/types";
+import type { Match, MatchSet, Pair, Player } from "../lib/types";
 import MatchCard from "./MatchCard";
 
 interface Props {
   pairs: Pair[];
   matches: Match[];
+  sets: MatchSet[];
   players: Player[];
-  onSaveScore: (matchId: number, gamesPair1: number, gamesPair2: number) => void;
+  onSaveSets: (
+    matchId: number,
+    updates: { setId: number; gamesPair1: number; gamesPair2: number }[]
+  ) => void;
   savingMatchId: number | null;
 }
 
 export default function FixtureBoard({
   pairs,
   matches,
+  sets,
   players,
-  onSaveScore,
+  onSaveSets,
   savingMatchId,
 }: Props) {
   const pairsById = new Map(pairs.map((p) => [p.id, p]));
   const nameById = new Map(players.map((p) => [p.id, p.name]));
+
+  const setsByMatch = new Map<number, MatchSet[]>();
+  for (const s of sets) {
+    const list = setsByMatch.get(s.match_id) ?? [];
+    list.push(s);
+    setsByMatch.set(s.match_id, list);
+  }
 
   const rounds = Array.from(new Set(matches.map((m) => m.round))).sort((a, b) => a - b);
 
@@ -34,12 +46,13 @@ export default function FixtureBoard({
                 <MatchCard
                   key={match.id}
                   match={match}
+                  sets={(setsByMatch.get(match.id) ?? []).sort(
+                    (a, b) => a.set_number - b.set_number
+                  )}
                   pairsById={pairsById}
                   nameById={nameById}
                   isSaving={savingMatchId === match.id}
-                  onSave={(gamesPair1, gamesPair2) =>
-                    onSaveScore(match.id, gamesPair1, gamesPair2)
-                  }
+                  onSave={(updates) => onSaveSets(match.id, updates)}
                 />
               ))}
           </div>

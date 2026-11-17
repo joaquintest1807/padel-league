@@ -16,10 +16,11 @@ la tabla general, mejores parejas y rachas — todo desde el celular, sin login.
 
 1. Crear una cuenta gratis en [supabase.com](https://supabase.com) y un proyecto nuevo.
 2. En el proyecto, ir a **SQL Editor** → pegar y correr **todo** el contenido de [`supabase/schema.sql`](supabase/schema.sql). Esto crea las tablas, las vistas, la función de sorteo, las políticas de seguridad, y carga a los 9 jugadores.
-3. Ir a **Database → Replication** y confirmar que las tablas `availability`, `pairs` y `matches` están agregadas a la publicación `supabase_realtime` (el script `schema.sql` ya las agrega por SQL, esto es solo para confirmar).
-4. Ir a **Project Settings → API** y copiar:
+   - El script es **idempotente**: si en el futuro se actualiza (por ejemplo, para agregar una funcionalidad nueva), se puede volver a correr tal cual — borra y recrea todo. **Ojo**: eso borra las fechas/resultados ya cargados, no el roster de jugadores.
+3. Ir a **Database → Replication** y confirmar que las tablas `availability`, `pairs`, `matches` y `sets` están agregadas a la publicación `supabase_realtime` (el script `schema.sql` ya las agrega por SQL, esto es solo para confirmar).
+4. Ir a **Project Settings → API Keys** y copiar:
    - **Project URL**
-   - **anon public key**
+   - **Publishable key** (antes llamada "anon key")
 
 ### 2. Variables de entorno
 
@@ -56,11 +57,11 @@ Abrir la URL que muestra la terminal (normalmente `http://localhost:5173`).
 ## Cómo se juega (reglas que la app implementa)
 
 - Cada miércoles, antes de reservar las canchas, el grupo decide quién juega — siempre un número par: 4, 6 u 8.
-- En "Esta Semana" cada uno marca "Voy" / "No voy". Cuando ya está la cantidad correcta, cualquiera aprieta **Armar fixture**: la app sortea las parejas y genera los partidos:
+- En "Esta Semana" cada uno marca "Voy" / "No voy". Cuando ya está la cantidad correcta, se elige si se juega a **4 o 6 games por set** (normalmente 6 con 4 jugadores, 4 con 6 u 8 jugadores, para poder rotar) y se aprieta **Armar fixture**: la app sortea las parejas y genera los cruces:
   - **8 jugadores**: 3 rondas, 2 canchas, cada pareja juega contra las otras 3.
-  - **6 jugadores**: 3 sets en 1 cancha, cada pareja contra las otras 2.
-  - **4 jugadores**: 1 solo set.
-- Al terminar cada set, se cargan los games de cada pareja. Puntaje individual de ese set: **diferencia de games + 1 punto extra si ganaste el set** (se acredita a ambos integrantes de la pareja).
+  - **6 jugadores**: round robin de 3 parejas en 1 cancha, cada pareja contra las otras 2.
+  - **4 jugadores**: 1 solo cruce.
+- Cada cruce entre 2 parejas se juega **al mejor de 3 sets**. Se cargan los games de cada set que se jugó (el tercero puede quedar vacío si el cruce se definió 2-0). Puntaje individual de **cada set**: diferencia de games + 1 punto extra si ganaste ese set (se acredita a ambos integrantes de la pareja); el puntaje del cruce es la suma de sus sets.
 - "Tabla General" acumula esos puntos fecha a fecha. "Mejores Parejas" junta el historial de cada combinación de 2 jugadores que jugó junta. "Rachas" muestra la racha actual y la mejor racha de fechas consecutivas con saldo positivo.
 
 ## Estructura del proyecto

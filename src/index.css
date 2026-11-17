@@ -214,6 +214,39 @@ html, body {
   margin-top: 1rem;
 }
 
+.games-per-set-picker {
+  margin-bottom: 0.75rem;
+}
+
+.picker-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-dim);
+  margin-bottom: 0.4rem;
+}
+
+.picker-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.picker-options .toggle-btn {
+  flex: 1;
+}
+
+.picker-options .toggle-btn.selected {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #042233;
+  font-weight: 700;
+}
+
+.games-per-set-tag {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--color-text-dim);
+}
+
 .hint {
   color: var(--color-text-dim);
   font-size: 0.85rem;
@@ -310,9 +343,40 @@ html, body {
   text-align: right;
 }
 
+.points-preview.total {
+  width: auto;
+  margin-left: auto;
+}
+
 .match-vs {
   text-align: center;
   font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.match-sets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.set-label {
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+  width: 2.8rem;
+  flex-shrink: 0;
+}
+
+.set-dash {
   color: var(--color-text-dim);
 }
 

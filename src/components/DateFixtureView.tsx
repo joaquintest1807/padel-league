@@ -19,20 +19,19 @@ export default function DateFixtureView({
 }: Props) {
   const { data: players } = usePlayers();
   const { data: availability, setAvailability } = useAvailability(matchDate.id);
-  const { pairs, matches, generateFixture, saveScore } = useFixture(matchDate.id);
+  const { pairs, matches, sets, generateFixture, saveSets } = useFixture(matchDate.id);
   const [savingMatchId, setSavingMatchId] = useState<number | null>(null);
 
   const confirmedCount = (availability ?? []).filter((a) => a.is_available).length;
   const fixtureExists = pairs.length > 0;
 
-  async function handleSaveScore(
+  async function handleSaveSets(
     matchId: number,
-    gamesPair1: number,
-    gamesPair2: number
+    updates: { setId: number; gamesPair1: number; gamesPair2: number }[]
   ) {
     setSavingMatchId(matchId);
     try {
-      await saveScore.mutateAsync({ matchId, gamesPair1, gamesPair2 });
+      await saveSets.mutateAsync(updates);
     } finally {
       setSavingMatchId(null);
     }
@@ -55,7 +54,7 @@ export default function DateFixtureView({
             confirmedCount={confirmedCount}
             alreadyGenerated={fixtureExists}
             isPending={generateFixture.isPending}
-            onClick={() => generateFixture.mutate()}
+            onClick={(gamesPerSet) => generateFixture.mutate(gamesPerSet)}
           />
           {generateFixture.isError && (
             <p className="error">
@@ -67,12 +66,18 @@ export default function DateFixtureView({
 
       {fixtureExists && (
         <section className="section">
-          <h2>Fixture</h2>
+          <h2>
+            Fixture
+            {matchDate.games_per_set && (
+              <span className="games-per-set-tag"> · sets a {matchDate.games_per_set} games</span>
+            )}
+          </h2>
           <FixtureBoard
             pairs={pairs}
             matches={matches}
+            sets={sets}
             players={players ?? []}
-            onSaveScore={handleSaveScore}
+            onSaveSets={handleSaveSets}
             savingMatchId={savingMatchId}
           />
         </section>

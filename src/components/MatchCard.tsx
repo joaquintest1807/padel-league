@@ -1,13 +1,14 @@
 import { useState } from "react";
-import type { Match, Pair } from "../lib/types";
+import type { Match, MatchSet, Pair } from "../lib/types";
 import { PAIR_LETTERS } from "../lib/types";
 import { computeSetPoints } from "../utils/scoring";
 
 interface Props {
   match: Match;
+  sets: MatchSet[]; // hasta 3, ordenados por set_number
   pairsById: Map<number, Pair>;
   nameById: Map<number, string>;
-  onSave: (gamesPair1: number, gamesPair2: number) => void;
+  onSave: (updates: { setId: number; gamesPair1: number; gamesPair2: number }[]) => void;
   isSaving: boolean;
 }
 
@@ -18,73 +19,144 @@ function pairLabel(pair: Pair | undefined, nameById: Map<number, string>): strin
   return `${n1} / ${n2}`;
 }
 
-export default function MatchCard({ match, pairsById, nameById, onSave, isSaving }: Props) {
+interface SetInputState {
+  g1: string;
+  g2: string;
+}
+
+export default function MatchCard({ match, sets, pairsById, nameById, onSave, isSaving }: Props) {
   const pair1 = pairsById.get(match.pair_1_id);
   const pair2 = pairsById.get(match.pair_2_id);
 
-  const [g1, setG1] = useState(match.games_pair_1?.toString() ?? "");
-  const [g2, setG2] = useState(match.games_pair_2?.toString() ?? "");
+  const [inputs, setInputs] = useState<Record<number, SetInputState>>(() => {
+    const initial: Record<number, SetInputState> = {};
+    for (const s of sets) {
+      initial[s.id] = {
+        g1: s.games_pair_1?.toString() ?? "",
+        g2: s.games_pair_2?.toString() ?? "",
+      };
+    }
+    return initial;
+  });
 
-  const parsedG1 = g1 === "" ? null : Number(g1);
-  const parsedG2 = g2 === "" ? null : Number(g2);
-  const previewPoints1 = computeSetPoints(parsedG1, parsedG2);
-  const previewPoints2 = computeSetPoints(parsedG2, parsedG1);
+  function updateInput(setId: number, field: "g1" | "g2", value: string) {
+    setInputs((prev) => ({
+      ...prev,
+      [setId]: { ...prev[setId], [field]: value },
+    }));
+  }
 
-  const hasSavedScore = match.games_pair_1 !== null && match.games_pair_2 !== null;
-  const canSave =
-    parsedG1 !== null &&
-    parsedG2 !== null &&
-    Number.isInteger(parsedG1) &&
-    Number.isInteger(parsedG2) &&
-    parsedG1 >= 0 &&
-    parsedG2 >= 0 &&
-    parsedG1 !== parsedG2; // un set no puede terminar empatado
+  // Un set solo cuenta como "listo para guardar" si tiene ambos valores,
+  // son numeros validos y no estan empatados (un set de padel no empata).
+  const readySets = sets
+    .map((s) => {
+      const input = inputs[s.id] ?? { g1: "", g2: "" };
+      const g1 = input.g1 === "" ? null : Number(input.g1);
+      const g2 = input.g2 === "" ? null : Number(input.g2);
+      const valid =
+        g1 !== null &&
+        g2 !== null &&
+        Number.isInteger(g1) &&
+        Number.isInteger(g2) &&
+        g1 >= 0 &&
+        g2 >= 0 &&
+        g1 !== g2;
+      return { set: s, g1, g2, valid };
+    });
+
+  const canSave = readySets.some((r) => r.valid);
+
+  const totalPoints1 = readySets.reduce(
+    (acc, r) => acc + (r.valid ? computeSetPoints(r.g1, r.g2)! : 0),
+    0
+  );
+  const totalPoints2 = readySets.reduce(
+    (acc, r) => acc + (r.valid ? computeSetPoints(r.g2, r.g1)! : 0),
+    0
+  );
+  const anySetHasScore = readySets.some((r) => r.valid);
+
+  function handleSave() {
+    const updates = readySets
+      .filter((r) => r.valid)
+      .map((r) => ({ setId: r.set.id, gamesPair1: r.g1 as number, gamesPair2: r.g2 as number }));
+    onSave(updates);
+  }
+
+  const hasAnySavedSet = sets.some((s) => s.games_pair_1 !== null && s.games_pair_2 !== null);
 
   return (
     <div className="match-card">
       <div className="match-header">
         Ronda {match.round} · Cancha {match.court}
       </div>
+
+      <div className="match-sets">
+        {sets.map((s) => {
+          const input = inputs[s.id] ?? { g1: "", g2: "" };
+          const g1 = input.g1 === "" ? null : Number(input.g1);
+          const g2 = input.g2 === "" ? null : Number(input.g2);
+          const preview1 = computeSetPoints(g1, g2);
+          const preview2 = computeSetPoints(g2, g1);
+          return (
+            <div key={s.id} className="set-row">
+              <span className="set-label">Set {s.set_number}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="games-input"
+                value={input.g1}
+                onChange={(e) => updateInput(s.id, "g1", e.target.value)}
+              />
+              <span className="set-dash">-</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                className="games-input"
+                value={input.g2}
+                onChange={(e) => updateInput(s.id, "g2", e.target.value)}
+              />
+              {preview1 !== null && (
+                <span className="points-preview">
+                  {preview1 >= 0 ? `+${preview1}` : preview1} / {preview2! >= 0 ? `+${preview2}` : preview2}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
       <div className="match-body">
         <div className="match-pair">
           <span className="pair-letter">{PAIR_LETTERS[pair1?.pair_order ?? 0]}</span>
           <span className="pair-names">{pairLabel(pair1, nameById)}</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            className="games-input"
-            value={g1}
-            onChange={(e) => setG1(e.target.value)}
-          />
-          {previewPoints1 !== null && (
-            <span className="points-preview">{previewPoints1 >= 0 ? `+${previewPoints1}` : previewPoints1}</span>
+          {anySetHasScore && (
+            <span className="points-preview total">
+              {totalPoints1 >= 0 ? `+${totalPoints1}` : totalPoints1}
+            </span>
           )}
         </div>
         <div className="match-vs">vs</div>
         <div className="match-pair">
           <span className="pair-letter">{PAIR_LETTERS[pair2?.pair_order ?? 0]}</span>
           <span className="pair-names">{pairLabel(pair2, nameById)}</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            className="games-input"
-            value={g2}
-            onChange={(e) => setG2(e.target.value)}
-          />
-          {previewPoints2 !== null && (
-            <span className="points-preview">{previewPoints2 >= 0 ? `+${previewPoints2}` : previewPoints2}</span>
+          {anySetHasScore && (
+            <span className="points-preview total">
+              {totalPoints2 >= 0 ? `+${totalPoints2}` : totalPoints2}
+            </span>
           )}
         </div>
       </div>
+
       <button
         type="button"
         className="btn-secondary"
         disabled={!canSave || isSaving}
-        onClick={() => onSave(parsedG1 as number, parsedG2 as number)}
+        onClick={handleSave}
       >
-        {isSaving ? "Guardando..." : hasSavedScore ? "Actualizar resultado" : "Guardar resultado"}
+        {isSaving ? "Guardando..." : hasAnySavedSet ? "Actualizar resultado" : "Guardar resultado"}
       </button>
     </div>
   );
