@@ -104,7 +104,8 @@ create table sets (
 -- cargados; un partido del fixture sin tocar no aparece en ninguna estadistica.
 -- ----------------------------------------------------------------------------
 
--- Por partido: cuantos sets se jugaron y cuantos gano cada pareja
+-- Por partido: cuantos sets se jugaron, cuantos gano cada pareja, y cuantos
+-- games totales hizo cada pareja (para el desempate por games ganados)
 create view match_results as
   select m.id as match_id, m.match_date_id, m.pair_1_id, m.pair_2_id,
          count(*) filter (
@@ -117,7 +118,13 @@ create view match_results as
          count(*) filter (
            where s.games_pair_1 is not null and s.games_pair_2 is not null
              and s.games_pair_2 > s.games_pair_1
-         ) as sets_won_pair_2
+         ) as sets_won_pair_2,
+         coalesce(sum(s.games_pair_1) filter (
+           where s.games_pair_1 is not null and s.games_pair_2 is not null
+         ), 0) as games_pair_1,
+         coalesce(sum(s.games_pair_2) filter (
+           where s.games_pair_1 is not null and s.games_pair_2 is not null
+         ), 0) as games_pair_2
     from matches m
     join sets s on s.match_id = m.id
    group by m.id, m.match_date_id, m.pair_1_id, m.pair_2_id;
@@ -142,20 +149,27 @@ create view match_points as
     from match_results mr;
 
 -- Cada partido JUGADO (is_started), desplegado en 2 filas (una por jugador de cada pareja)
+-- Incluye sets_won/sets_lost/games_won "desde la perspectiva de ese jugador",
+-- insumo de las columnas de desempate en Tabla General.
 create view player_match_points as
-  select mp.match_id, mp.match_date_id, pr.player_1_id as player_id, mp.points_pair_1 as points
+  select mp.match_id, mp.match_date_id, pr.player_1_id as player_id, mp.points_pair_1 as points,
+         mp.sets_won_pair_1 as sets_won, mp.sets_won_pair_2 as sets_lost,
+         mp.games_pair_1 as games_won
     from match_points mp join pairs pr on pr.id = mp.pair_1_id
    where mp.is_started
   union all
-  select mp.match_id, mp.match_date_id, pr.player_2_id, mp.points_pair_1
+  select mp.match_id, mp.match_date_id, pr.player_2_id, mp.points_pair_1,
+         mp.sets_won_pair_1, mp.sets_won_pair_2, mp.games_pair_1
     from match_points mp join pairs pr on pr.id = mp.pair_1_id
    where mp.is_started
   union all
-  select mp.match_id, mp.match_date_id, pr.player_1_id, mp.points_pair_2
+  select mp.match_id, mp.match_date_id, pr.player_1_id, mp.points_pair_2,
+         mp.sets_won_pair_2, mp.sets_won_pair_1, mp.games_pair_2
     from match_points mp join pairs pr on pr.id = mp.pair_2_id
    where mp.is_started
   union all
-  select mp.match_id, mp.match_date_id, pr.player_2_id, mp.points_pair_2
+  select mp.match_id, mp.match_date_id, pr.player_2_id, mp.points_pair_2,
+         mp.sets_won_pair_2, mp.sets_won_pair_1, mp.games_pair_2
     from match_points mp join pairs pr on pr.id = mp.pair_2_id
    where mp.is_started;
 
@@ -171,12 +185,17 @@ create view pair_match_points as
     from match_points mp
    where mp.is_started;
 
--- Tabla General: ranking acumulado de temporada (unidad = partido, no set)
+-- Tabla General: ranking acumulado de temporada (unidad = partido, no set).
+-- Incluye sets_won/sets_lost/games_won: criterios de desempate cuando hay
+-- igualdad de puntos (1ro mas sets ganados, 2do menos sets perdidos).
 create view season_ranking as
   select p.id as player_id, p.name,
          coalesce(sum(pmp.points), 0) as total_points,
          count(pmp.points) as matches_played,
-         count(distinct pmp.match_date_id) as dates_played
+         count(distinct pmp.match_date_id) as dates_played,
+         coalesce(sum(pmp.sets_won), 0) as sets_won,
+         coalesce(sum(pmp.sets_lost), 0) as sets_lost,
+         coalesce(sum(pmp.games_won), 0) as games_won
     from players p
     left join player_match_points pmp on pmp.player_id = p.id
    group by p.id, p.name;

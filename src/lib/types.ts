@@ -48,6 +48,9 @@ export interface SeasonRankingRow {
   total_points: number;
   matches_played: number;
   dates_played: number;
+  sets_won: number;
+  sets_lost: number;
+  games_won: number;
 }
 
 export interface PlayerDatePointsRow {

@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { useRanking } from "../hooks/useRanking";
+import { compareRows } from "../components/RankingTable";
 
 export default function Home() {
   const { data } = useRanking();
-  const top3 = [...(data ?? [])].sort((a, b) => b.total_points - a.total_points).slice(0, 3);
+  const top3 = [...(data ?? [])].sort(compareRows).slice(0, 3);
 
   return (
     <div className="page">
